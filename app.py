@@ -1,7 +1,7 @@
 import re
 import streamlit as st
 
-from breach_checker import eamails, passwords, strength
+from breach_checker import emails, passwords, strength
 from breach_checker.errors import BreachCheckError
 
 email_pattern = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -22,15 +22,19 @@ with tab_password:
 
   if password:
     result = strength.evaluate(password)
-    col1, clo2 = st.columns(2)
+    col1, col2 = st.columns(2)
     col1.metric("Robustness", result.label)
-    clo2.metric("Entropy", f"{result.entropy_bits} bits")
+    col2.metric("Entropy", f"{result.entropy} bits")
 
     try:
-      leaks = passwords.check(password)
-      st.error(f"This password has leaked. {leack:,} times. Change it.")
-  else:
-    st.success("No known leaks for this password.")
+      leaks = passwords.count_leaks(password)
+    except BreachCheckError as error:
+      st.warning(str(error))
+    else:
+      if leaks:
+        st.error(f"This password has leaked. {leaks:,} times. Change it.")
+      else:
+        st.success("No known leaks for this password.")
 
   with st.expander("Advice"):
     for tip in result.tips:
